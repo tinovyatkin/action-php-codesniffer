@@ -3517,6 +3517,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const path = __importStar(__webpack_require__(622));
 const core = __importStar(__webpack_require__(470));
 const get_changed_file_1 = __webpack_require__(942);
+const run_on_files_1 = __webpack_require__(303);
 async function run() {
     try {
         const files = await get_changed_file_1.getChangedFiles();
@@ -3531,6 +3532,10 @@ async function run() {
          */
         const matchersPath = path.join(__dirname, '..', '.github');
         console.log(`##[add-matcher]${path.join(matchersPath, 'phpcs-matcher.json')}`);
+        // run on complete files when they added or scope=files
+        const scope = core.getInput('scope', { required: true });
+        const returnCode = await run_on_files_1.runOnCompleteFiles(scope === 'files' ? [...files.added, ...files.modified] : files.added);
+        console.log('Run on complete files exited with %n', returnCode);
     }
     catch (error) {
         core.setFailed(error.message);
@@ -4472,6 +4477,40 @@ paginateRest.VERSION = VERSION;
 
 exports.paginateRest = paginateRest;
 //# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 303:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const child_process_1 = __webpack_require__(129);
+const events_1 = __webpack_require__(614);
+const core = __importStar(__webpack_require__(470));
+/**
+ * Executes phpcs on whole files and let's errors to be picked by problem matcher
+ * @param files
+ */
+async function runOnCompleteFiles(files) {
+    const phpcs = core.getInput('phpcs_path', { required: true });
+    const run = child_process_1.spawn(phpcs, ['--report=checkstyle', ...files], {
+        stdio: ['inherit', 'inherit', 'inherit'],
+    });
+    const [code] = await events_1.once(run, 'exit');
+    console.log('PhpCS exited with code %n', code);
+    return code;
+}
+exports.runOnCompleteFiles = runOnCompleteFiles;
 
 
 /***/ }),

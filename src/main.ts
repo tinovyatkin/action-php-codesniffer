@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as core from '@actions/core';
 import { getChangedFiles } from './get-changed-file';
+import { runOnCompleteFiles } from './run-on-files';
 
 async function run(): Promise<void> {
   try {
@@ -19,6 +20,13 @@ async function run(): Promise<void> {
     console.log(
       `##[add-matcher]${path.join(matchersPath, 'phpcs-matcher.json')}`
     );
+
+    // run on complete files when they added or scope=files
+    const scope = core.getInput('scope', { required: true });
+    const returnCode = await runOnCompleteFiles(
+      scope === 'files' ? [...files.added, ...files.modified] : files.added
+    );
+    console.log('Run on complete files exited with %n', returnCode);
   } catch (error) {
     core.setFailed(error.message);
   }
