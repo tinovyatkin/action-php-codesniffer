@@ -10,7 +10,7 @@
     "format-check": "prettier --check **/*.ts",
     "lint": "eslint src/**/*.ts",
     "pack": "ncc build",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "all": "npm run build && npm run format && npm run lint && npm run pack && npm test"
   },
   "repository": {
@@ -32,6 +32,7 @@
   "devDependencies": {
     "@types/jest": "^25.2.1",
     "@types/node": "^13.13.4",
+    "@typescript-eslint/eslint-plugin": "2.30.0",
     "@typescript-eslint/parser": "^2.30.0",
     "@zeit/ncc": "^0.22.1",
     "eslint": "^6.8.0",
