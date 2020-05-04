@@ -11,7 +11,9 @@ interface ChangedFiles {
 async function getChangedFilesFromGitHub(
   token: string,
   filterPattern: RegExp
-): Promise<ChangedFiles> {}
+): Promise<ChangedFiles> {
+  return { added: [], modified: [] };
+}
 
 export async function getChangedFiles(): Promise<ChangedFiles> {
   const pattern = core.getInput('files', { required: false });
