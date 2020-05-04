@@ -23,10 +23,9 @@ async function run(): Promise<void> {
 
     // run on complete files when they added or scope=files
     const scope = core.getInput('scope', { required: true });
-    const returnCode = await runOnCompleteFiles(
+    runOnCompleteFiles(
       scope === 'files' ? [...files.added, ...files.modified] : files.added
     );
-    console.log('Run on complete files exited with %n', returnCode);
   } catch (error) {
     core.setFailed(error.message);
   }
