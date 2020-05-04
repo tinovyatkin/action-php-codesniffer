@@ -25,7 +25,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 100
-    - run: git diff-tree --no-commit-id --name-status --diff-filter=d -r ..${{ github.sha }}
+    - run: git diff-tree --no-commit-id --name-status --diff-filter=d -r ${{ github.event.pull_request.base.sha }}..${{ github.event.after }}
     - run: git diff --name-status --diff-filter=d ..${{ github.sha }}
     - uses: ./
       with: 
