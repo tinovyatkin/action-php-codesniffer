@@ -33,7 +33,7 @@ async function run(): Promise<void> {
       await runOnBlame(files.modified);
     }
   } catch (error) {
-    core.setFailed(error.message);
+    core.setFailed(error);
   }
 }
 
