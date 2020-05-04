@@ -4502,8 +4502,12 @@ const core = __importStar(__webpack_require__(470));
  */
 async function runOnCompleteFiles(files) {
     const phpcs = core.getInput('phpcs_path', { required: true });
+    const args = ['--report=checkstyle'];
+    const standard = core.getInput('standard');
+    if (standard)
+        args.push(`--standard=${standard}`);
     try {
-        child_process_1.execSync(`${phpcs} --report=checkstyle ${files.join(' ')}`, {
+        child_process_1.execSync(`${phpcs} ${args.join(' ')} ${files.join(' ')}`, {
             stdio: 'inherit',
             timeout: 20000,
         });

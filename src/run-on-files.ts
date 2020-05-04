@@ -7,8 +7,12 @@ import * as core from '@actions/core';
  */
 export async function runOnCompleteFiles(files: string[]): Promise<number> {
   const phpcs = core.getInput('phpcs_path', { required: true });
+  const args = ['--report=checkstyle'];
+  const standard = core.getInput('standard');
+  if (standard) args.push(`--standard=${standard}`);
+
   try {
-    execSync(`${phpcs} --report=checkstyle ${files.join(' ')}`, {
+    execSync(`${phpcs} ${args.join(' ')} ${files.join(' ')}`, {
       stdio: 'inherit',
       timeout: 20000,
     });

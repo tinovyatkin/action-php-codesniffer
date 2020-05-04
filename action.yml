@@ -14,8 +14,8 @@ inputs:
     description: 'path to phpcs executable'
     default: 'phpcs'
     required: false
-  repo-token:
-    description: 'GitHub repo token'
+  standard:
+    description: 'Code style standard name (PEAR, ) or path to a phpcs.xml file'
     required: false
   
 runs:
