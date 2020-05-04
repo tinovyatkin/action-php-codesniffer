@@ -3,7 +3,7 @@ import { getChangedFiles } from './get-changed-file';
 
 async function run(): Promise<void> {
   try {
-    const files = getChangedFiles();
+    const files = await getChangedFiles();
     console.log(files);
     core.info(JSON.stringify(files, null, 2));
     core.setOutput('time', new Date().toTimeString());
