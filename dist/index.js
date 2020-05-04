@@ -3771,7 +3771,7 @@ async function run() {
         }
     }
     catch (error) {
-        core.setFailed(error.message);
+        core.setFailed(error);
     }
 }
 run();
@@ -5876,12 +5876,7 @@ async function runOnBlame(files) {
         const payload = github.context
             .payload;
         // get email of author of first commit in PR
-        const authorEmail = child_process_1.execFileSync('git', [
-            '--no-pager',
-            'log',
-            '--format=%ae',
-            `${payload.pull_request.base.sha}^!`,
-        ], { encoding: 'utf8', windowsHide: true, timeout: 5000 }).trim();
+        const authorEmail = child_process_1.execFileSync('git', ['--no-pager', 'log', '--format=%ae', `${github.context.sha}^!`], { encoding: 'utf8', windowsHide: true, timeout: 5000 }).trim();
         console.log('PR author email: %s', authorEmail);
         for (const [file, results] of Object.entries(lintResults.files)) {
             const blameMap = await git_blame_json_1.blame(file);
