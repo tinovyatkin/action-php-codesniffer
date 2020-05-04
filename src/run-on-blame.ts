@@ -33,7 +33,7 @@ export async function runOnBlame(files: string[]): Promise<void> {
       [
         '--no-pager',
         'log',
-        "--format='%ae'",
+        '--format=%ae',
         `${payload.pull_request.base.sha}^!`,
       ],
       { encoding: 'utf8', windowsHide: true, timeout: 5000 }

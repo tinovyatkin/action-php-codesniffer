@@ -5878,7 +5878,7 @@ async function runOnBlame(files) {
         const authorEmail = child_process_1.execFileSync('git', [
             '--no-pager',
             'log',
-            "--format='%ae'",
+            '--format=%ae',
             `${payload.pull_request.base.sha}^!`,
         ], { encoding: 'utf8', windowsHide: true, timeout: 5000 }).trim();
         console.log('PR author email: %s', authorEmail);
