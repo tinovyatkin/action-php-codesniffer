@@ -12,25 +12,11 @@ interface ChangedFiles {
   modified: string[];
 }
 
-async function getChangedFilesFromGitHub(
-  token: string,
-  filesGlobs: string[]
-): Promise<ChangedFiles> {
-  return { added: [], modified: [] };
-}
-
 export async function getChangedFiles(): Promise<ChangedFiles> {
   const pattern = core.getInput('files', {
     required: false,
   });
   const globs = pattern.length ? pattern.split(',') : ['*.php'];
-
-  // check if we have a token
-  const token = core.getInput('repo-token', {
-    required: false,
-  });
-  if (token) return getChangedFilesFromGitHub(token, globs);
-
   const payload = github.context.payload as Webhooks.WebhookPayloadPullRequest;
 
   /*
