@@ -3994,9 +3994,7 @@ const get_changed_file_1 = __webpack_require__(942);
 async function run() {
     try {
         const files = await get_changed_file_1.getChangedFiles();
-        console.log(files);
         core.info(JSON.stringify(files, null, 2));
-        core.setOutput('time', new Date().toTimeString());
     }
     catch (error) {
         core.setFailed(error.message);
