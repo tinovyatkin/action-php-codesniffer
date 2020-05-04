@@ -19,7 +19,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 100
-    - run: git --no-pager diff --name-status --diff-filter=acmr master..HEAD
+    - run: git --no-pager diff --name-status master..HEAD
     - uses: ./
       with: 
         files: .*
