@@ -16,10 +16,16 @@ jobs:
   test: # make sure the action works on a clean machine without building
     runs-on: ubuntu-latest
     steps:
+    - name: Dump GitHub context
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: |
+          echo "$GITHUB_CONTEXT"
+          set
     - uses: actions/checkout@v2
       with:
         fetch-depth: 100
-    - run: git diff-tree --no-commit-id --name-status -r ${{ github.event.after }}
+    - run: git diff-tree --no-commit-id --name-status -r origin/master
     - uses: ./
       with: 
         files: .*
