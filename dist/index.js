@@ -26991,7 +26991,7 @@ async function getChangedFiles() {
     const pattern = core.getInput('files', {
         required: false,
     });
-    const globs = pattern.length ? pattern.split(',') : ['*.php'];
+    const globs = pattern.length ? pattern.split(',') : ['**.php'];
     const isMatch = picomatch_1.default(globs);
     console.log('Filter patterns:', globs, isMatch('src/test.php'));
     const payload = github.context.payload;

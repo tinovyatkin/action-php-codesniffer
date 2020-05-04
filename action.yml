@@ -4,7 +4,7 @@ author: 'Konstantin Vyatkin <tino@vtkn.io>'
 inputs:
   files:       
     description: 'files to check'
-    default: '*.php'
+    default: '**.php'
     required: false
   scope:
     description: 'scope to annotate errors or warnings - either "file" to check entire file or "blame" to check only lines changed by author of current PR'

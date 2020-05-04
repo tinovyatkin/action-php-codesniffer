@@ -16,7 +16,7 @@ export async function getChangedFiles(): Promise<ChangedFiles> {
   const pattern = core.getInput('files', {
     required: false,
   });
-  const globs = pattern.length ? pattern.split(',') : ['*.php'];
+  const globs = pattern.length ? pattern.split(',') : ['**.php'];
   const isMatch = picomatch(globs);
   console.log('Filter patterns:', globs, isMatch('src/test.php'));
   const payload = github.context.payload as Webhooks.WebhookPayloadPullRequest;
