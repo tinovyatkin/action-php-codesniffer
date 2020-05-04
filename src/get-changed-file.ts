@@ -5,7 +5,7 @@ import { existsSync } from 'fs';
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as Webhooks from '@octokit/webhooks';
-import { isMatch } from 'micromatch';
+// import { isMatch } from 'micromatch';
 
 interface ChangedFiles {
   added: string[];
@@ -66,7 +66,7 @@ export async function getChangedFiles(): Promise<ChangedFiles> {
       if (parsed?.groups) {
         const { status, file } = parsed.groups;
         // ensure file exists
-        if (isMatch(file, globs) && existsSync(file)) {
+        if (existsSync(file)) {
           switch (status) {
             case 'A':
             case 'C':
