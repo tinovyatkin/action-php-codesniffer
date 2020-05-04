@@ -5856,7 +5856,7 @@ const git_blame_json_1 = __webpack_require__(5);
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 async function runOnBlame(files) {
-    var _a, _b;
+    var _a;
     try {
         const options = {};
         const standard = core.getInput('standard');
@@ -5884,8 +5884,6 @@ async function runOnBlame(files) {
         console.log('PR author email: %s', authorEmail);
         for (const [file, results] of Object.entries(lintResults.files)) {
             const blameMap = await git_blame_json_1.blame(file);
-            console.log(blameMap);
-            console.log(results);
             let headerPrinted = false;
             for (const message of results.messages) {
                 if (((_a = blameMap.get(message.line)) === null || _a === void 0 ? void 0 : _a.authorMail) === authorEmail) {
@@ -5896,15 +5894,13 @@ async function runOnBlame(files) {
                         headerPrinted = true;
                     }
                     // output the problem
-                    console[message.type === 'ERROR' ? 'error' : 'warn'](`<error line="${message.line}" column="${message.column}" severity="${message.type.toLowerCase()}" message="${message.message}" source="${message.source}"/>`);
+                    console.log('<error line="%n" column="%n" severity="%s" message="%s" source="%s"/>', message.line, message.column, message.type.toLowerCase(), message.message, message.source);
                     // fail
                     if (message.type === 'WARNING' && !dontFailOnWarning)
                         core.setFailed(message.message);
                     else if (message.type === 'ERROR')
                         core.setFailed(message.message);
                 }
-                else
-                    console.warn('Line %n, %s != %s', message.line, (_b = blameMap.get(message.line)) === null || _b === void 0 ? void 0 : _b.authorMail, authorEmail);
             }
         }
     }

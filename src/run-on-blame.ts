@@ -41,8 +41,6 @@ export async function runOnBlame(files: string[]): Promise<void> {
     console.log('PR author email: %s', authorEmail);
     for (const [file, results] of Object.entries(lintResults.files)) {
       const blameMap = await blame(file);
-      console.log(blameMap);
-      console.log(results);
       let headerPrinted = false;
       for (const message of results.messages) {
         if (blameMap.get(message.line)?.authorMail === authorEmail) {
@@ -53,24 +51,19 @@ export async function runOnBlame(files: string[]): Promise<void> {
             headerPrinted = true;
           }
           // output the problem
-          console[message.type === 'ERROR' ? 'error' : 'warn'](
-            `<error line="${message.line}" column="${
-              message.column
-            }" severity="${message.type.toLowerCase()}" message="${
-              message.message
-            }" source="${message.source}"/>`
+          console.log(
+            '<error line="%n" column="%n" severity="%s" message="%s" source="%s"/>',
+            message.line,
+            message.column,
+            message.type.toLowerCase(),
+            message.message,
+            message.source
           );
           // fail
           if (message.type === 'WARNING' && !dontFailOnWarning)
             core.setFailed(message.message);
           else if (message.type === 'ERROR') core.setFailed(message.message);
-        } else
-          console.warn(
-            'Line %n, %s != %s',
-            message.line,
-            blameMap.get(message.line)?.authorMail,
-            authorEmail
-          );
+        }
       }
     }
   } catch (err) {
