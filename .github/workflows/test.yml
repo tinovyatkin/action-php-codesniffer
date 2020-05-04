@@ -28,9 +28,9 @@ jobs:
     - name: Install PHP_CodeSniffer
       run: |
               curl -OL https://squizlabs.github.io/PHP_CodeSniffer/phpcs.phar
-              php phpcs.phar -h
+              php phpcs.phar --version
 
     - uses: ./
       with: 
-        files: "src/*.ts,*.json"
+        files: "*.php"
         phpcs_path: php phpcs.phar
