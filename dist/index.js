@@ -147,6 +147,95 @@ module.exports = osName;
 
 /***/ }),
 
+/***/ 5:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/**
+ * Spawns git blame and parses results into JSON, via stream (so, no problem on huge files)
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const child_process_1 = __webpack_require__(129);
+const readline_1 = __webpack_require__(58);
+const camel_case_1 = __webpack_require__(947);
+async function blame(filename, options = {}, gitPath = 'git') {
+    var _a, _b, _c, _d;
+    /**
+     * @see {@link https://git-scm.com/docs/git-blame#_options}
+     */
+    const args = ['--no-pager', 'blame', '--line-porcelain'];
+    if (typeof options.workTree === 'string') {
+        args.unshift(`--work-tree=${options.workTree}`);
+    }
+    if (typeof options.gitDir === 'string') {
+        args.unshift(`--git-dir=${options.gitDir}`);
+    }
+    if (typeof options.ignoreWhitespace === 'boolean') {
+        args.push('-w');
+    }
+    if (typeof options.range === 'string') {
+        args.push(`-L${options.range}`);
+    }
+    if (typeof options.rev === 'string') {
+        args.push(options.rev);
+    }
+    const git = child_process_1.spawn(gitPath, [...args, '--', filename], {
+        windowsHide: true,
+    });
+    const readline = readline_1.createInterface({ input: git.stdout });
+    let currentLine;
+    const linesMap = new Map();
+    for await (const line of readline) {
+        // https://git-scm.com/docs/git-blame#_the_porcelain_format
+        // Each blame entry always starts with a line of:
+        // <40-byte hex sha1> <sourceline> <resultline> <num_lines>
+        // like: 49790775624c422f67057f7bb936f35df920e391 94 120 3
+        const parsedLine = /^(?<hash>[a-f0-9]{40,40})\s(?<sourceline>\d+)\s(?<resultLine>\d+)\s(?<numLines>\d+)$/.exec(line);
+        if ((_a = parsedLine) === null || _a === void 0 ? void 0 : _a.groups) {
+            // this is a new line info
+            const sourceLine = parseInt(parsedLine.groups.sourceline, 10);
+            const resultLine = parseInt((_b = parsedLine) === null || _b === void 0 ? void 0 : _b.groups.resultLine, 10);
+            const numberOfLines = parseInt((_c = parsedLine) === null || _c === void 0 ? void 0 : _c.groups.numLines, 10);
+            currentLine = {
+                hash: parsedLine.groups.hash,
+                sourceLine,
+                resultLine,
+                numberOfLines,
+            };
+            // set for all lines
+            for (let i = resultLine; i < resultLine + numberOfLines; i++)
+                linesMap.set(i, currentLine);
+        }
+        else {
+            if (currentLine) {
+                const commitInfo = /^(?<token>[a-z]+(-(?<subtoken>[a-z]+))?)\s(?<data>.+)$/.exec(line);
+                if ((_d = commitInfo) === null || _d === void 0 ? void 0 : _d.groups) {
+                    const property = camel_case_1.camelCase(commitInfo.groups.token);
+                    let value = commitInfo.groups.data;
+                    switch (commitInfo.groups.subtoken) {
+                        case 'mail':
+                            // remove <> from email
+                            value = value.slice(1, -1);
+                            break;
+                        case 'time':
+                            // parse datestamp into number
+                            value = parseInt(value, 10);
+                            break;
+                    }
+                    currentLine[property] = value;
+                }
+            }
+        }
+    }
+    return linesMap;
+}
+exports.blame = blame;
+//# sourceMappingURL=index.js.map
+
+/***/ }),
+
 /***/ 9:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -3321,6 +3410,86 @@ function paginatePlugin(octokit) {
 
 /***/ }),
 
+/***/ 160:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * Launches phpCs and returns results as JSON
+ */
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const path = __importStar(__webpack_require__(622));
+const util_1 = __webpack_require__(669);
+const child_process_1 = __webpack_require__(129);
+const assert = __importStar(__webpack_require__(357));
+const execAsync = util_1.promisify(child_process_1.exec);
+const EXECUTABLE_VERSIONS = new Map();
+const DEFAULT_EXECUTABLE_PATH = path.resolve(__dirname, '../node_modules/php_codesniffer_master/bin/phpcs');
+const DEFAULT_OPTIONS = {
+    encoding: 'UTF-8',
+    standard: 'PEAR',
+};
+/**
+ * Launches phpCs and returns current version
+ */
+async function version(executablePath = DEFAULT_EXECUTABLE_PATH) {
+    var _a, _b;
+    if (EXECUTABLE_VERSIONS.has(executablePath))
+        return EXECUTABLE_VERSIONS.get(executablePath);
+    const { stdout } = await execAsync(`${executablePath} --version`, {
+        windowsHide: true,
+        timeout: 5000,
+    });
+    const ver = (_b = (_a = /^PHP_CodeSniffer version (?<ver>\d+\.\d+\.\d+)/i.exec(stdout.trim())) === null || _a === void 0 ? void 0 : _a.groups) === null || _b === void 0 ? void 0 : _b.ver;
+    if (!ver)
+        throw new ReferenceError(`Unknown version or invalid executable of phpcs, returned: "${stdout}"`);
+    EXECUTABLE_VERSIONS.set(executablePath, ver);
+    return ver;
+}
+exports.version = version;
+async function lint(filenames, executablePath = DEFAULT_EXECUTABLE_PATH, options = DEFAULT_OPTIONS) {
+    var _a, _b;
+    try {
+        const ver = await version(executablePath);
+        assert.ok(ver >= '2.6', `This library requires phpcs version 2.6 or later, received ${ver}`);
+        // we use promisified version, so, should not set exit code or it will throw
+        const args = [
+            '--report=json',
+            '-q',
+            `--encoding=${options.encoding}`,
+            `--standard=${options.standard}`,
+            '--runtime-set ignore_errors_on_exit 1',
+            '--runtime-set ignore_warnings_on_exit 1',
+        ];
+        const { stdout } = await execAsync(`${executablePath} ${args.join(' ')} ${Array.isArray(filenames) ? filenames.join(' ') : filenames}`, {
+            windowsHide: true,
+            timeout: 15000,
+        });
+        return JSON.parse(stdout);
+    }
+    catch (err) {
+        if ('stdout' in err) {
+            // Determine whether we have an error in stdout.
+            const error = (_b = (_a = /^ERROR:\s?(?<error>.*)/i.exec(err.stdout)) === null || _a === void 0 ? void 0 : _a.groups) === null || _b === void 0 ? void 0 : _b.error;
+            if (error)
+                throw new Error(error.trim());
+        }
+        throw err;
+    }
+}
+exports.lint = lint;
+//# sourceMappingURL=linter.js.map
+
+/***/ }),
+
 /***/ 168:
 /***/ (function(module) {
 
@@ -3367,6 +3536,65 @@ module.exports = opts => {
 	return result;
 };
 
+
+/***/ }),
+
+/***/ 175:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Source: ftp://ftp.unicode.org/Public/UCD/latest/ucd/SpecialCasing.txt
+ */
+var SUPPORTED_LOCALE = {
+    tr: {
+        regexp: /\u0130|\u0049|\u0049\u0307/g,
+        map: {
+            İ: "\u0069",
+            I: "\u0131",
+            İ: "\u0069"
+        }
+    },
+    az: {
+        regexp: /\u0130/g,
+        map: {
+            İ: "\u0069",
+            I: "\u0131",
+            İ: "\u0069"
+        }
+    },
+    lt: {
+        regexp: /\u0049|\u004A|\u012E|\u00CC|\u00CD|\u0128/g,
+        map: {
+            I: "\u0069\u0307",
+            J: "\u006A\u0307",
+            Į: "\u012F\u0307",
+            Ì: "\u0069\u0307\u0300",
+            Í: "\u0069\u0307\u0301",
+            Ĩ: "\u0069\u0307\u0303"
+        }
+    }
+};
+/**
+ * Localized lower case.
+ */
+function localeLowerCase(str, locale) {
+    var lang = SUPPORTED_LOCALE[locale.toLowerCase()];
+    if (lang)
+        return lowerCase(str.replace(lang.regexp, function (m) { return lang.map[m]; }));
+    return lowerCase(str);
+}
+exports.localeLowerCase = localeLowerCase;
+/**
+ * Lower case as a function.
+ */
+function lowerCase(str) {
+    return str.toLowerCase();
+}
+exports.lowerCase = lowerCase;
+//# sourceMappingURL=index.js.map
 
 /***/ }),
 
@@ -3518,6 +3746,7 @@ const path = __importStar(__webpack_require__(622));
 const core = __importStar(__webpack_require__(470));
 const get_changed_file_1 = __webpack_require__(942);
 const run_on_files_1 = __webpack_require__(303);
+const run_on_blame_1 = __webpack_require__(400);
 async function run() {
     try {
         const files = await get_changed_file_1.getChangedFiles();
@@ -3534,8 +3763,12 @@ async function run() {
         console.log(`##[add-matcher]${path.join(matchersPath, 'phpcs-matcher.json')}`);
         // run on complete files when they added or scope=files
         const scope = core.getInput('scope', { required: true });
-        const returnCode = await run_on_files_1.runOnCompleteFiles(scope === 'files' ? [...files.added, ...files.modified] : files.added);
-        console.log('Run on complete files exited with %n', returnCode);
+        if (files.added.length || scope === 'files')
+            run_on_files_1.runOnCompleteFiles(scope === 'files' ? [...files.added, ...files.modified] : files.added);
+        else if (files.modified.length && scope === 'blame') {
+            // run on blame
+            await run_on_blame_1.runOnBlame(files.modified);
+        }
     }
     catch (error) {
         core.setFailed(error.message);
@@ -4500,22 +4733,26 @@ const core = __importStar(__webpack_require__(470));
  * Executes phpcs on whole files and let's errors to be picked by problem matcher
  * @param files
  */
-async function runOnCompleteFiles(files) {
+function runOnCompleteFiles(files) {
     const phpcs = core.getInput('phpcs_path', { required: true });
     const args = ['--report=checkstyle'];
     const standard = core.getInput('standard');
     if (standard)
         args.push(`--standard=${standard}`);
+    const failOnWarning = core.getInput('fail_on_warnings');
+    if (failOnWarning == 'false' || failOnWarning === 'off') {
+        args.push('--runtime-set ignore_warnings_on_exit 1');
+    }
     try {
         child_process_1.execSync(`${phpcs} ${args.join(' ')} ${files.join(' ')}`, {
             stdio: 'inherit',
             timeout: 20000,
         });
-        console.log('PhpCS exited with code 0');
         return 0;
     }
     catch (err) {
-        console.error(err);
+        core.debug(err);
+        core.setFailed(err);
         return 1;
     }
 }
@@ -5600,6 +5837,84 @@ module.exports = readShebang;
 
 /***/ }),
 
+/***/ 400:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const php_codesniffer_1 = __webpack_require__(160);
+const child_process_1 = __webpack_require__(129);
+const git_blame_json_1 = __webpack_require__(5);
+const path = __importStar(__webpack_require__(622));
+const core = __importStar(__webpack_require__(470));
+const github = __importStar(__webpack_require__(469));
+async function runOnBlame(files) {
+    var _a;
+    try {
+        const options = {};
+        const standard = core.getInput('standard');
+        if (standard)
+            options.standard = standard;
+        const lintResults = await php_codesniffer_1.lint(files, core.getInput('phpcs_path', { required: true }));
+        const dontFailOnWarning = core.getInput('fail_on_warnings') == 'false' ||
+            core.getInput('fail_on_warnings') === 'off';
+        if (!lintResults.totals.errors) {
+            if (dontFailOnWarning)
+                return;
+            if (!lintResults.totals.warnings)
+                return;
+        }
+        // blame files and output relevant errors
+        const payload = github.context
+            .payload;
+        // get email of author of first commit in PR
+        const authorEmail = child_process_1.execFileSync('git', [
+            '--no-pager',
+            'log',
+            '--format=%ae',
+            `${payload.pull_request.base.sha}^!`,
+        ], { encoding: 'utf8', windowsHide: true, timeout: 5000 }).trim();
+        console.log('PR author email: %s', authorEmail);
+        for (const [file, results] of Object.entries(lintResults.files)) {
+            const blameMap = await git_blame_json_1.blame(file);
+            let headerPrinted = false;
+            for (const message of results.messages) {
+                if (((_a = blameMap.get(message.line)) === null || _a === void 0 ? void 0 : _a.authorMail) === authorEmail) {
+                    // that's our line
+                    // we simulate checkstyle output to be picked up by problem matched
+                    if (!headerPrinted) {
+                        console.log(`<file name="${path.relative(process.cwd(), file)}">`);
+                        headerPrinted = true;
+                    }
+                    // output the problem
+                    console.log('<error line="%d" column="%d" severity="%s" message="%s" source="%s"/>', message.line, message.column, message.type.toLowerCase(), message.message, message.source);
+                    // fail
+                    if (message.type === 'WARNING' && !dontFailOnWarning)
+                        core.setFailed(message.message);
+                    else if (message.type === 'ERROR')
+                        core.setFailed(message.message);
+                }
+            }
+        }
+    }
+    catch (err) {
+        core.debug(err);
+        core.setFailed(err);
+    }
+}
+exports.runOnBlame = runOnBlame;
+
+
+/***/ }),
+
 /***/ 402:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -5640,6 +5955,268 @@ function Octokit(plugins, options) {
 /***/ (function(module) {
 
 module.exports = require("stream");
+
+/***/ }),
+
+/***/ 422:
+/***/ (function(module) {
+
+/*! *****************************************************************************
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at http://www.apache.org/licenses/LICENSE-2.0
+
+THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+MERCHANTABLITY OR NON-INFRINGEMENT.
+
+See the Apache Version 2.0 License for specific language governing permissions
+and limitations under the License.
+***************************************************************************** */
+/* global global, define, System, Reflect, Promise */
+var __extends;
+var __assign;
+var __rest;
+var __decorate;
+var __param;
+var __metadata;
+var __awaiter;
+var __generator;
+var __exportStar;
+var __values;
+var __read;
+var __spread;
+var __spreadArrays;
+var __await;
+var __asyncGenerator;
+var __asyncDelegator;
+var __asyncValues;
+var __makeTemplateObject;
+var __importStar;
+var __importDefault;
+(function (factory) {
+    var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
+    if (typeof define === "function" && define.amd) {
+        define("tslib", ["exports"], function (exports) { factory(createExporter(root, createExporter(exports))); });
+    }
+    else if ( true && typeof module.exports === "object") {
+        factory(createExporter(root, createExporter(module.exports)));
+    }
+    else {
+        factory(createExporter(root));
+    }
+    function createExporter(exports, previous) {
+        if (exports !== root) {
+            if (typeof Object.create === "function") {
+                Object.defineProperty(exports, "__esModule", { value: true });
+            }
+            else {
+                exports.__esModule = true;
+            }
+        }
+        return function (id, v) { return exports[id] = previous ? previous(id, v) : v; };
+    }
+})
+(function (exporter) {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+
+    __extends = function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+
+    __assign = Object.assign || function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+        }
+        return t;
+    };
+
+    __rest = function (s, e) {
+        var t = {};
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+            t[p] = s[p];
+        if (s != null && typeof Object.getOwnPropertySymbols === "function")
+            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                    t[p[i]] = s[p[i]];
+            }
+        return t;
+    };
+
+    __decorate = function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+
+    __param = function (paramIndex, decorator) {
+        return function (target, key) { decorator(target, key, paramIndex); }
+    };
+
+    __metadata = function (metadataKey, metadataValue) {
+        if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
+    };
+
+    __awaiter = function (thisArg, _arguments, P, generator) {
+        return new (P || (P = Promise))(function (resolve, reject) {
+            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+            function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+            step((generator = generator.apply(thisArg, _arguments || [])).next());
+        });
+    };
+
+    __generator = function (thisArg, body) {
+        var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+        return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+        function verb(n) { return function (v) { return step([n, v]); }; }
+        function step(op) {
+            if (f) throw new TypeError("Generator is already executing.");
+            while (_) try {
+                if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+                if (y = 0, t) op = [op[0] & 2, t.value];
+                switch (op[0]) {
+                    case 0: case 1: t = op; break;
+                    case 4: _.label++; return { value: op[1], done: false };
+                    case 5: _.label++; y = op[1]; op = [0]; continue;
+                    case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                    default:
+                        if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                        if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                        if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                        if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                        if (t[2]) _.ops.pop();
+                        _.trys.pop(); continue;
+                }
+                op = body.call(thisArg, _);
+            } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+            if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+        }
+    };
+
+    __exportStar = function (m, exports) {
+        for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+    };
+
+    __values = function (o) {
+        var m = typeof Symbol === "function" && o[Symbol.iterator], i = 0;
+        if (m) return m.call(o);
+        return {
+            next: function () {
+                if (o && i >= o.length) o = void 0;
+                return { value: o && o[i++], done: !o };
+            }
+        };
+    };
+
+    __read = function (o, n) {
+        var m = typeof Symbol === "function" && o[Symbol.iterator];
+        if (!m) return o;
+        var i = m.call(o), r, ar = [], e;
+        try {
+            while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+        }
+        catch (error) { e = { error: error }; }
+        finally {
+            try {
+                if (r && !r.done && (m = i["return"])) m.call(i);
+            }
+            finally { if (e) throw e.error; }
+        }
+        return ar;
+    };
+
+    __spread = function () {
+        for (var ar = [], i = 0; i < arguments.length; i++)
+            ar = ar.concat(__read(arguments[i]));
+        return ar;
+    };
+
+    __spreadArrays = function () {
+        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+        for (var r = Array(s), k = 0, i = 0; i < il; i++)
+            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+                r[k] = a[j];
+        return r;
+    };
+
+    __await = function (v) {
+        return this instanceof __await ? (this.v = v, this) : new __await(v);
+    };
+
+    __asyncGenerator = function (thisArg, _arguments, generator) {
+        if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+        var g = generator.apply(thisArg, _arguments || []), i, q = [];
+        return i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i;
+        function verb(n) { if (g[n]) i[n] = function (v) { return new Promise(function (a, b) { q.push([n, v, a, b]) > 1 || resume(n, v); }); }; }
+        function resume(n, v) { try { step(g[n](v)); } catch (e) { settle(q[0][3], e); } }
+        function step(r) { r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);  }
+        function fulfill(value) { resume("next", value); }
+        function reject(value) { resume("throw", value); }
+        function settle(f, v) { if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]); }
+    };
+
+    __asyncDelegator = function (o) {
+        var i, p;
+        return i = {}, verb("next"), verb("throw", function (e) { throw e; }), verb("return"), i[Symbol.iterator] = function () { return this; }, i;
+        function verb(n, f) { i[n] = o[n] ? function (v) { return (p = !p) ? { value: __await(o[n](v)), done: n === "return" } : f ? f(v) : v; } : f; }
+    };
+
+    __asyncValues = function (o) {
+        if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+        var m = o[Symbol.asyncIterator], i;
+        return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
+        function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
+        function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
+    };
+
+    __makeTemplateObject = function (cooked, raw) {
+        if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
+        return cooked;
+    };
+
+    __importStar = function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+        result["default"] = mod;
+        return result;
+    };
+
+    __importDefault = function (mod) {
+        return (mod && mod.__esModule) ? mod : { "default": mod };
+    };
+
+    exporter("__extends", __extends);
+    exporter("__assign", __assign);
+    exporter("__rest", __rest);
+    exporter("__decorate", __decorate);
+    exporter("__param", __param);
+    exporter("__metadata", __metadata);
+    exporter("__awaiter", __awaiter);
+    exporter("__generator", __generator);
+    exporter("__exportStar", __exportStar);
+    exporter("__values", __values);
+    exporter("__read", __read);
+    exporter("__spread", __spread);
+    exporter("__spreadArrays", __spreadArrays);
+    exporter("__await", __await);
+    exporter("__asyncGenerator", __asyncGenerator);
+    exporter("__asyncDelegator", __asyncDelegator);
+    exporter("__asyncValues", __asyncValues);
+    exporter("__makeTemplateObject", __makeTemplateObject);
+    exporter("__importStar", __importStar);
+    exporter("__importDefault", __importDefault);
+});
+
 
 /***/ }),
 
@@ -9293,6 +9870,51 @@ function getNextPage (octokit, link, headers) {
   return getPage(octokit, link, 'next', headers)
 }
 
+
+/***/ }),
+
+/***/ 555:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var lower_case_1 = __webpack_require__(175);
+// Support camel case ("camelCase" -> "camel Case" and "CAMELCase" -> "CAMEL Case").
+var DEFAULT_SPLIT_REGEXP = [/([a-z0-9])([A-Z])/g, /([A-Z])([A-Z][a-z])/g];
+// Remove all non-word characters.
+var DEFAULT_STRIP_REGEXP = /[^A-Z0-9]+/gi;
+/**
+ * Normalize the string into something other libraries can manipulate easier.
+ */
+function noCase(input, options) {
+    if (options === void 0) { options = {}; }
+    var _a = options.splitRegexp, splitRegexp = _a === void 0 ? DEFAULT_SPLIT_REGEXP : _a, _b = options.stripRegexp, stripRegexp = _b === void 0 ? DEFAULT_STRIP_REGEXP : _b, _c = options.transform, transform = _c === void 0 ? lower_case_1.lowerCase : _c, _d = options.delimiter, delimiter = _d === void 0 ? " " : _d;
+    var result = replace(replace(input, splitRegexp, "$1\0$2"), stripRegexp, "\0");
+    var start = 0;
+    var end = result.length;
+    // Trim the delimiter from around the output string.
+    while (result.charAt(start) === "\0")
+        start++;
+    while (result.charAt(end - 1) === "\0")
+        end--;
+    // Transform each token independently.
+    return result
+        .slice(start, end)
+        .split("\0")
+        .map(transform)
+        .join(delimiter);
+}
+exports.noCase = noCase;
+/**
+ * Replace `re` in the input string with the replacement value.
+ */
+function replace(input, re, value) {
+    if (re instanceof RegExp)
+        return input.replace(re, value);
+    return re.reduce(function (input, re) { return input.replace(re, value); }, input);
+}
+//# sourceMappingURL=index.js.map
 
 /***/ }),
 
@@ -25715,6 +26337,36 @@ module.exports = __webpack_require__(141);
 
 /***/ }),
 
+/***/ 857:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var tslib_1 = __webpack_require__(422);
+var no_case_1 = __webpack_require__(555);
+function pascalCaseTransform(input, index) {
+    var firstChar = input.charAt(0);
+    var lowerChars = input.substr(1).toLowerCase();
+    if (index > 0 && firstChar >= "0" && firstChar <= "9") {
+        return "_" + firstChar + lowerChars;
+    }
+    return "" + firstChar.toUpperCase() + lowerChars;
+}
+exports.pascalCaseTransform = pascalCaseTransform;
+function pascalCaseTransformMerge(input) {
+    return input.charAt(0).toUpperCase() + input.slice(1).toLowerCase();
+}
+exports.pascalCaseTransformMerge = pascalCaseTransformMerge;
+function pascalCase(input, options) {
+    if (options === void 0) { options = {}; }
+    return no_case_1.noCase(input, tslib_1.__assign({ delimiter: "", transform: pascalCaseTransform }, options));
+}
+exports.pascalCase = pascalCase;
+//# sourceMappingURL=index.js.map
+
+/***/ }),
+
 /***/ 863:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -27097,6 +27749,35 @@ async function getChangedFiles() {
 }
 exports.getChangedFiles = getChangedFiles;
 
+
+/***/ }),
+
+/***/ 947:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var tslib_1 = __webpack_require__(422);
+var pascal_case_1 = __webpack_require__(857);
+function camelCaseTransform(input, index) {
+    if (index === 0)
+        return input.toLowerCase();
+    return pascal_case_1.pascalCaseTransform(input, index);
+}
+exports.camelCaseTransform = camelCaseTransform;
+function camelCaseTransformMerge(input, index) {
+    if (index === 0)
+        return input.toLowerCase();
+    return pascal_case_1.pascalCaseTransformMerge(input);
+}
+exports.camelCaseTransformMerge = camelCaseTransformMerge;
+function camelCase(input, options) {
+    if (options === void 0) { options = {}; }
+    return pascal_case_1.pascalCase(input, tslib_1.__assign({ transform: camelCaseTransform }, options));
+}
+exports.camelCase = camelCase;
+//# sourceMappingURL=index.js.map
 
 /***/ }),
 
