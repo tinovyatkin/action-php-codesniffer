@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as core from '@actions/core';
 import { getChangedFiles } from './get-changed-file';
 import { runOnCompleteFiles } from './run-on-files';
+import { runOnBlame } from './run-on-blame';
 
 async function run(): Promise<void> {
   try {
@@ -23,9 +24,14 @@ async function run(): Promise<void> {
 
     // run on complete files when they added or scope=files
     const scope = core.getInput('scope', { required: true });
-    runOnCompleteFiles(
-      scope === 'files' ? [...files.added, ...files.modified] : files.added
-    );
+    if (files.added.length || scope === 'files')
+      runOnCompleteFiles(
+        scope === 'files' ? [...files.added, ...files.modified] : files.added
+      );
+    else if (files.modified.length && scope === 'blame') {
+      // run on blame
+      await runOnBlame(files.modified);
+    }
   } catch (error) {
     core.setFailed(error.message);
   }

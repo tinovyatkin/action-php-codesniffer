@@ -3321,6 +3321,86 @@ function paginatePlugin(octokit) {
 
 /***/ }),
 
+/***/ 160:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+/**
+ * Launches phpCs and returns results as JSON
+ */
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const path = __importStar(__webpack_require__(622));
+const util_1 = __webpack_require__(669);
+const child_process_1 = __webpack_require__(129);
+const assert = __importStar(__webpack_require__(357));
+const execAsync = util_1.promisify(child_process_1.exec);
+const EXECUTABLE_VERSIONS = new Map();
+const DEFAULT_EXECUTABLE_PATH = path.resolve(__dirname, '../node_modules/php_codesniffer_master/bin/phpcs');
+const DEFAULT_OPTIONS = {
+    encoding: 'UTF-8',
+    standard: 'PEAR',
+};
+/**
+ * Launches phpCs and returns current version
+ */
+async function version(executablePath = DEFAULT_EXECUTABLE_PATH) {
+    var _a, _b;
+    if (EXECUTABLE_VERSIONS.has(executablePath))
+        return EXECUTABLE_VERSIONS.get(executablePath);
+    const { stdout } = await execAsync(`${executablePath} --version`, {
+        windowsHide: true,
+        timeout: 5000,
+    });
+    const ver = (_b = (_a = /^PHP_CodeSniffer version (?<ver>\d+\.\d+\.\d+)/i.exec(stdout.trim())) === null || _a === void 0 ? void 0 : _a.groups) === null || _b === void 0 ? void 0 : _b.ver;
+    if (!ver)
+        throw new ReferenceError(`Unknown version or invalid executable of phpcs, returned: "${stdout}"`);
+    EXECUTABLE_VERSIONS.set(executablePath, ver);
+    return ver;
+}
+exports.version = version;
+async function lint(filenames, executablePath = DEFAULT_EXECUTABLE_PATH, options = DEFAULT_OPTIONS) {
+    var _a, _b;
+    try {
+        const ver = await version();
+        assert.ok(ver >= '2.6', `This library requires phpcs version 2.6 or later, received ${ver}`);
+        // we use promisified version, so, should not set exit code or it will throw
+        const args = [
+            '--report=json',
+            '-q',
+            `--encoding=${options.encoding}`,
+            `--standard=${options.standard}`,
+            '--runtime-set ignore_errors_on_exit 1',
+            '--runtime-set ignore_warnings_on_exit 1',
+        ];
+        const { stdout } = await execAsync(`${executablePath} ${args.join(' ')} ${Array.isArray(filenames) ? filenames.join(' ') : filenames}`, {
+            windowsHide: true,
+            timeout: 15000,
+        });
+        return JSON.parse(stdout);
+    }
+    catch (err) {
+        if ('stdout' in err) {
+            // Determine whether we have an error in stdout.
+            const error = (_b = (_a = /^ERROR:\s?(?<error>.*)/i.exec(err.stdout)) === null || _a === void 0 ? void 0 : _a.groups) === null || _b === void 0 ? void 0 : _b.error;
+            if (error)
+                throw new Error(error.trim());
+        }
+        throw err;
+    }
+}
+exports.lint = lint;
+//# sourceMappingURL=linter.js.map
+
+/***/ }),
+
 /***/ 168:
 /***/ (function(module) {
 
@@ -3518,6 +3598,7 @@ const path = __importStar(__webpack_require__(622));
 const core = __importStar(__webpack_require__(470));
 const get_changed_file_1 = __webpack_require__(942);
 const run_on_files_1 = __webpack_require__(303);
+const run_on_blame_1 = __webpack_require__(400);
 async function run() {
     try {
         const files = await get_changed_file_1.getChangedFiles();
@@ -3534,8 +3615,12 @@ async function run() {
         console.log(`##[add-matcher]${path.join(matchersPath, 'phpcs-matcher.json')}`);
         // run on complete files when they added or scope=files
         const scope = core.getInput('scope', { required: true });
-        const returnCode = await run_on_files_1.runOnCompleteFiles(scope === 'files' ? [...files.added, ...files.modified] : files.added);
-        console.log('Run on complete files exited with %n', returnCode);
+        if (files.added.length || scope === 'files')
+            run_on_files_1.runOnCompleteFiles(scope === 'files' ? [...files.added, ...files.modified] : files.added);
+        else if (files.modified.length && scope === 'blame') {
+            // run on blame
+            await run_on_blame_1.runOnBlame(files.modified);
+        }
     }
     catch (error) {
         core.setFailed(error.message);
@@ -4500,22 +4585,26 @@ const core = __importStar(__webpack_require__(470));
  * Executes phpcs on whole files and let's errors to be picked by problem matcher
  * @param files
  */
-async function runOnCompleteFiles(files) {
+function runOnCompleteFiles(files) {
     const phpcs = core.getInput('phpcs_path', { required: true });
     const args = ['--report=checkstyle'];
     const standard = core.getInput('standard');
     if (standard)
         args.push(`--standard=${standard}`);
+    const failOnWarning = core.getInput('fail_on_warnings');
+    if (failOnWarning == 'false' || failOnWarning === 'off') {
+        args.push('--runtime-set ignore_warnings_on_exit 1');
+    }
     try {
         child_process_1.execSync(`${phpcs} ${args.join(' ')} ${files.join(' ')}`, {
             stdio: 'inherit',
             timeout: 20000,
         });
-        console.log('PhpCS exited with code 0');
         return 0;
     }
     catch (err) {
-        console.error(err);
+        core.debug(err);
+        core.setFailed(err);
         return 1;
     }
 }
@@ -5596,6 +5685,56 @@ function readShebang(command) {
 }
 
 module.exports = readShebang;
+
+
+/***/ }),
+
+/***/ 400:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const php_codesniffer_1 = __webpack_require__(160);
+// import { blame } from 'git-blame-json';
+const core = __importStar(__webpack_require__(470));
+const github = __importStar(__webpack_require__(469));
+async function runOnBlame(files) {
+    try {
+        const options = {};
+        const standard = core.getInput('standard');
+        if (standard)
+            options.standard = standard;
+        const lintResults = await php_codesniffer_1.lint(files, core.getInput('phpcs_path', { required: true }));
+        const dontFailOnWarning = core.getInput('fail_on_warnings') == 'false' ||
+            core.getInput('fail_on_warnings') === 'off';
+        if (!lintResults.totals.errors) {
+            if (dontFailOnWarning)
+                return;
+            if (!lintResults.totals.warnings)
+                return;
+        }
+        // blame files and output relevant errors
+        const payload = github.context
+            .payload;
+        console.log(JSON.stringify(payload, null, 2));
+        // for (const [file, results] of Object.entries(lintResults.files)) {
+        //   const blameMap = await blame(file);
+        // }
+    }
+    catch (err) {
+        core.debug(err);
+        core.setFailed(err);
+    }
+}
+exports.runOnBlame = runOnBlame;
 
 
 /***/ }),
