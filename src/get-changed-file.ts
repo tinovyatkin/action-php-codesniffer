@@ -1,7 +1,9 @@
-import * as core from '@actions/core';
 import { spawn } from 'child_process';
 import { createInterface } from 'readline';
 import { existsSync } from 'fs';
+
+import * as core from '@actions/core';
+import * as github from '@actions/github';
 
 interface ChangedFiles {
   added: string[];
@@ -16,31 +18,47 @@ async function getChangedFilesFromGitHub(
 }
 
 export async function getChangedFiles(): Promise<ChangedFiles> {
-  const pattern = core.getInput('files', { required: false });
+  const pattern = core.getInput('files', {
+    required: false,
+  });
   const re = new RegExp(pattern.length ? pattern : '*.php');
 
   // check if we have a token
-  const token = core.getInput('repo-token', { required: false });
+  const token = core.getInput('repo-token', {
+    required: false,
+  });
   if (token) return getChangedFilesFromGitHub(token, re);
+
+  const { context } = github;
 
   /*
     getting them from Git
-    git --no-pager diff --name-only ..origin/master | grep '^src\/.*\.ts$' | xargs ls -d 2>/dev/null | paste -sd " " -
+    git diff-tree --no-commit-id --name-status --diff-filter=d -r ${{ github.event.pull_request.base.sha }}..${{ github.event.after }}
   */
   try {
     const git = spawn(
       'git',
       [
         '--no-pager',
-        'diff',
+        'diff-tree',
+        '--no-commit-id',
         '--name-status',
-        '--diff-filter=acmr',
-        '..origin/master',
+        '--diff-filter=d',
+        '-r',
+        `${context.event.pull_request.base.sha}..${context.event.after}`,
       ],
-      { windowsHide: true, timeout: 5000 }
+      {
+        windowsHide: true,
+        timeout: 5000,
+      }
     );
-    const readline = createInterface({ input: git.stdout });
-    const result: ChangedFiles = { added: [], modified: [] };
+    const readline = createInterface({
+      input: git.stdout,
+    });
+    const result: ChangedFiles = {
+      added: [],
+      modified: [],
+    };
     for await (const line of readline) {
       const parsed = /^(?<status>[ACMR])[\s\t]+(?<file>\S+)$/.exec(line);
       if (parsed?.groups) {
@@ -63,6 +81,9 @@ export async function getChangedFiles(): Promise<ChangedFiles> {
     return result;
   } catch (err) {
     console.error(err);
-    return { added: [], modified: [] };
+    return {
+      added: [],
+      modified: [],
+    };
   }
 }
