@@ -3369,7 +3369,7 @@ exports.version = version;
 async function lint(filenames, executablePath = DEFAULT_EXECUTABLE_PATH, options = DEFAULT_OPTIONS) {
     var _a, _b;
     try {
-        const ver = await version();
+        const ver = await version(executablePath);
         assert.ok(ver >= '2.6', `This library requires phpcs version 2.6 or later, received ${ver}`);
         // we use promisified version, so, should not set exit code or it will throw
         const args = [
