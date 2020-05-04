@@ -32,5 +32,5 @@ jobs:
 
     - uses: ./
       with: 
-        files: "*.php"
+        files: "*.*"
         phpcs_path: php phpcs.phar

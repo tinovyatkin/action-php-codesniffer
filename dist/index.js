@@ -3989,6 +3989,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const path = __importStar(__webpack_require__(622));
 const core = __importStar(__webpack_require__(470));
 const get_changed_file_1 = __webpack_require__(942);
 async function run() {
@@ -3999,6 +4000,12 @@ async function run() {
             core.warning('No files to check, exiting...');
             return;
         }
+        /**
+         * Adding problem matcher to annotate files without token
+         * @see {@link https://github.com/actions/setup-node/blob/a47b2f66c61e623b503818d97a63ce0fe087f700/src/setup-node.ts#L36}
+         */
+        const matchersPath = path.join(__dirname, '..', '.github');
+        console.log(`##[add-matcher]${path.join(matchersPath, 'phpcs-matcher.json')}`);
     }
     catch (error) {
         core.setFailed(error.message);
