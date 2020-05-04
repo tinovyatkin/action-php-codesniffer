@@ -2,10 +2,10 @@ import { spawn } from 'child_process';
 import { createInterface } from 'readline';
 import { existsSync } from 'fs';
 
-// import * as core from '@actions/core';
+import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as Webhooks from '@octokit/webhooks';
-// import { isMatch } from 'micromatch';
+import { isMatch } from 'micromatch';
 
 interface ChangedFiles {
   added: string[];
@@ -13,10 +13,11 @@ interface ChangedFiles {
 }
 
 export async function getChangedFiles(): Promise<ChangedFiles> {
-  // const pattern = core.getInput('files', {
-  //   required: false,
-  // });
-  // const globs = pattern.length ? pattern.split(',') : ['*.php'];
+  const pattern = core.getInput('files', {
+    required: false,
+  });
+  const globs = pattern.length ? pattern.split(',') : ['*.php'];
+  console.log('Filter patterns:', globs);
   const payload = github.context.payload as Webhooks.WebhookPayloadPullRequest;
 
   /*
@@ -52,7 +53,7 @@ export async function getChangedFiles(): Promise<ChangedFiles> {
       if (parsed?.groups) {
         const { status, file } = parsed.groups;
         // ensure file exists
-        if (existsSync(file)) {
+        if (isMatch(file, globs) && existsSync(file)) {
           switch (status) {
             case 'A':
             case 'C':
