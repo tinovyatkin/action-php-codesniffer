@@ -29,13 +29,13 @@
     "@actions/github": "2.1.1",
     "@octokit/webhooks": "7.4.0",
     "git-blame-json": "1.0.0",
-    "micromatch": "4.0.2",
-    "php-codesniffer": "1.0.0"
+    "php-codesniffer": "1.0.0",
+    "picomatch": "2.2.2"
   },
   "devDependencies": {
     "@types/jest": "^25.2.1",
-    "@types/micromatch": "4.0.1",
     "@types/node": "^13.13.4",
+    "@types/picomatch": "2.2.1",
     "@typescript-eslint/eslint-plugin": "2.30.0",
     "@typescript-eslint/parser": "^2.30.0",
     "@zeit/ncc": "^0.22.1",
