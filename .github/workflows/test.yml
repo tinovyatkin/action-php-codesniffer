@@ -25,7 +25,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 100
-    - run: git diff-tree --no-commit-id --name-status -r origin/master
+    - run: git diff-tree --no-commit-id --name-status -r ${{ github.sha }}
     - uses: ./
       with: 
         files: .*
