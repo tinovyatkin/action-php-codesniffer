@@ -5856,7 +5856,7 @@ const git_blame_json_1 = __webpack_require__(5);
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 async function runOnBlame(files) {
-    var _a;
+    var _a, _b;
     try {
         const options = {};
         const standard = core.getInput('standard');
@@ -5903,6 +5903,8 @@ async function runOnBlame(files) {
                     else if (message.type === 'ERROR')
                         core.setFailed(message.message);
                 }
+                else
+                    console.warn('Line %n, %s != %s', message.line, (_b = blameMap.get(message.line)) === null || _b === void 0 ? void 0 : _b.authorEmail, authorEmail);
             }
         }
     }

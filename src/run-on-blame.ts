@@ -64,7 +64,13 @@ export async function runOnBlame(files: string[]): Promise<void> {
           if (message.type === 'WARNING' && !dontFailOnWarning)
             core.setFailed(message.message);
           else if (message.type === 'ERROR') core.setFailed(message.message);
-        }
+        } else
+          console.warn(
+            'Line %n, %s != %s',
+            message.line,
+            blameMap.get(message.line)?.authorEmail,
+            authorEmail
+          );
       }
     }
   } catch (err) {
