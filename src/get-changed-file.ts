@@ -5,6 +5,7 @@ import { existsSync } from 'fs';
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as Webhooks from '@octokit/webhooks';
+import { isMatch } from 'micromatch';
 
 interface ChangedFiles {
   added: string[];
@@ -13,7 +14,7 @@ interface ChangedFiles {
 
 async function getChangedFilesFromGitHub(
   token: string,
-  filterPattern: RegExp
+  filesGlobs: string[]
 ): Promise<ChangedFiles> {
   return { added: [], modified: [] };
 }
@@ -22,13 +23,13 @@ export async function getChangedFiles(): Promise<ChangedFiles> {
   const pattern = core.getInput('files', {
     required: false,
   });
-  const re = new RegExp(pattern.length ? pattern : '*.php');
+  const globs = pattern.length ? pattern.split(',') : ['*.php'];
 
   // check if we have a token
   const token = core.getInput('repo-token', {
     required: false,
   });
-  if (token) return getChangedFilesFromGitHub(token, re);
+  if (token) return getChangedFilesFromGitHub(token, globs);
 
   const payload = github.context.payload as Webhooks.WebhookPayloadPullRequest;
 
@@ -65,7 +66,7 @@ export async function getChangedFiles(): Promise<ChangedFiles> {
       if (parsed?.groups) {
         const { status, file } = parsed.groups;
         // ensure file exists
-        if (re.test(file) && existsSync(file)) {
+        if (isMatch(file, globs) && existsSync(file)) {
           switch (status) {
             case 'A':
             case 'C':
