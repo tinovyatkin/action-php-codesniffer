@@ -1,101 +1,48 @@
-<p align="center">
-  <a href="https://github.com/actions/typescript-action/actions"><img alt="typescript-action status" src="https://github.com/actions/typescript-action/workflows/build-test/badge.svg"></a>
-</p>
+# GitHub Action to run PHP_CodeSniffer of files changed in current PR or even on changed lines
 
-# Create a JavaScript Action using TypeScript
+This action runs [PHP_CodeSniffer](https://github.com/squizlabs/PHP_CodeSniffer) on files changed in a Pull Request, by default annotating only lines changed by the PR author. So, it's fast and great to work with legacy code:
 
-Use this template to bootstrap the creation of a JavaScript action.:rocket:
+![annotations](.github/screenshot-phpcs-action.png)
 
-This template includes compilication support, tests, a validation workflow, publishing, and versioning guidance.  
+Contrary to some existing solutions this actions works faster than Docker based actions (as it runs from Node.JS directly in the same VM) and runs only on changed files (good 
+for big projects with some non-conform files as well as to gradually introduce code style).
 
-If you are new, there's also a simpler introduction.  See the [Hello World JavaScript Action](https://github.com/actions/hello-world-javascript-action)
+## Usage
 
-## Create an action from this template
+Add a file like this to `.github/workflows/phpcs.yml`:
 
-Click the `Use this Template` and provide the new repo details for your action
+```yml
+name: "CI"
 
-## Code in Master
+on:
+  pull_request:
+    paths:
+      - "**.php"
+      - "phpcs.xml"
+      - ".github/workflows/phpcs.yml"
 
-Install the dependencies  
-```bash
-$ npm install
+jobs:
+  phpcs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # important!
+
+      # we may use whatever way to install phpcs, just specify the path on the next step
+      # however, curl seems to be the fastest
+      - name: Install PHP_CodeSniffer
+        run: |
+          curl -OL https://squizlabs.github.io/PHP_CodeSniffer/phpcs.phar
+          php phpcs.phar --version
+
+      - uses: tinovyatkin/action-php-codesniffer@v1
+        with:
+          files: "**.php" # you may customize glob as needed
+          phpcs_path: php phpcs.phar
+          standard: phpcs.xml
 ```
 
-Build the typescript and package it for distribution
-```bash
-$ npm run build && npm run pack
-```
-
-Run the tests :heavy_check_mark:  
-```bash
-$ npm test
-
- PASS  ./index.test.js
-  ✓ throws invalid number (3ms)
-  ✓ wait 500 ms (504ms)
-  ✓ test runs (95ms)
-
-...
-```
-
-## Change action.yml
-
-The action.yml contains defines the inputs and output for your action.
-
-Update the action.yml with your name, description, inputs and outputs for your action.
-
-See the [documentation](https://help.github.com/en/articles/metadata-syntax-for-github-actions)
-
-## Change the Code
-
-Most toolkit and CI/CD operations involve async operations so the action is run in an async function.
-
-```javascript
-import * as core from '@actions/core';
-...
-
-async function run() {
-  try { 
-      ...
-  } 
-  catch (error) {
-    core.setFailed(error.message);
-  }
-}
-
-run()
-```
-
-See the [toolkit documentation](https://github.com/actions/toolkit/blob/master/README.md#packages) for the various packages.
-
-## Publish to a distribution branch
-
-Actions are run from GitHub repos so we will checkin the packed dist folder. 
-
-Then run [ncc](https://github.com/zeit/ncc) and push the results:
-```bash
-$ npm run pack
-$ git add dist
-$ git commit -a -m "prod dependencies"
-$ git push origin releases/v1
-```
-
-Your action is now published! :rocket: 
-
-See the [versioning documentation](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
-
-## Validate
-
-You can now validate the action by referencing `./` in a workflow in your repo (see [test.yml](.github/workflows/test.yml)])
-
-```yaml
-uses: ./
-with:
-  milliseconds: 1000
-```
-
-See the [actions tab](https://github.com/actions/javascript-action/actions) for runs of this action! :rocket:
-
-## Usage:
-
-After testing you can [create a v1 tag](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md) to reference the stable and latest V1 action
+You also will need either to pick a build code style standard or create `phpcs.xml` file (like [this](https://github.com/woocommerce/woocommerce/blob/master/phpcs.xml) for example).
+You may find all available configuration options at [action.yml](action.yml) in this repository.
+Example of this action running over small change in big legacy codebase: https://github.com/tinovyatkin/woocommerce/pull/1/checks?check_run_id=642017335
