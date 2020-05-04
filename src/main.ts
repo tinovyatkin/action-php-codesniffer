@@ -1,19 +1,35 @@
-import * as core from '@actions/core'
-import {wait} from './wait'
+import * as path from 'path';
+import * as core from '@actions/core';
+import { getChangedFiles } from './get-changed-file';
+import { runOnCompleteFiles } from './run-on-files';
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`)
+    const files = await getChangedFiles();
+    core.info(JSON.stringify(files, null, 2));
+    if (!files.added.length && !files.modified.length) {
+      core.warning('No files to check, exiting...');
+      return;
+    }
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    /**
+     * Adding problem matcher to annotate files without token
+     * @see {@link https://github.com/actions/setup-node/blob/a47b2f66c61e623b503818d97a63ce0fe087f700/src/setup-node.ts#L36}
+     */
+    const matchersPath = path.join(__dirname, '..', '.github');
+    console.log(
+      `##[add-matcher]${path.join(matchersPath, 'phpcs-matcher.json')}`
+    );
 
-    core.setOutput('time', new Date().toTimeString())
+    // run on complete files when they added or scope=files
+    const scope = core.getInput('scope', { required: true });
+    const returnCode = await runOnCompleteFiles(
+      scope === 'files' ? [...files.added, ...files.modified] : files.added
+    );
+    console.log('Run on complete files exited with %n', returnCode);
   } catch (error) {
-    core.setFailed(error.message)
+    core.setFailed(error.message);
   }
 }
 
-run()
+run();

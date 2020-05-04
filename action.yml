@@ -1,10 +1,27 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'action-php-codesniffer'
+description: 'Runs PHP_CodeSniffer on files changed in current PR or even only on lines by author of PR'
+author: 'Konstantin Vyatkin <tino@vtkn.io>'
 inputs:
-  myInput:              # change this
-    description: 'input description here'
-    default: 'default value if applicable'
+  files:       
+    description: 'files to check'
+    default: '**.php'
+    required: false
+  scope:
+    description: 'scope to annotate errors or warnings - either "file" to check entire file or "blame" to check only lines changed by author of current PR'
+    default: 'blame'
+    required: false
+  phpcs_path:
+    description: 'path to phpcs executable'
+    default: 'phpcs'
+    required: false
+  standard:
+    description: 'Code style standard name (PEAR, ) or path to a phpcs.xml file'
+    required: false
+  
 runs:
   using: 'node12'
   main: 'dist/index.js'
+  
+branding:
+  icon: 'wind'
+  color: 'green'
