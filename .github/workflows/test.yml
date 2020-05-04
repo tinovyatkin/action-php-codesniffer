@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - run: git --no-pager diff --name-status --diff-filter=acmr ..origin/master
     - uses: ./
       with: 
         files: .*
