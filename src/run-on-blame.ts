@@ -41,6 +41,8 @@ export async function runOnBlame(files: string[]): Promise<void> {
     console.log('PR author email: %s', authorEmail);
     for (const [file, results] of Object.entries(lintResults.files)) {
       const blameMap = await blame(file);
+      console.log(blameMap);
+      console.log(results);
       let headerPrinted = false;
       for (const message of results.message) {
         if (blameMap.get(message.line)?.authorEmail === authorEmail) {
