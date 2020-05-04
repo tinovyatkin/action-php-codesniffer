@@ -28957,20 +28957,11 @@ const fs_1 = __webpack_require__(747);
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 const micromatch_1 = __webpack_require__(74);
-async function getChangedFilesFromGitHub(token, filesGlobs) {
-    return { added: [], modified: [] };
-}
 async function getChangedFiles() {
     const pattern = core.getInput('files', {
         required: false,
     });
     const globs = pattern.length ? pattern.split(',') : ['*.php'];
-    // check if we have a token
-    const token = core.getInput('repo-token', {
-        required: false,
-    });
-    if (token)
-        return getChangedFilesFromGitHub(token, globs);
     const payload = github.context.payload;
     /*
       getting them from Git
