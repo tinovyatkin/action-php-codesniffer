@@ -5880,7 +5880,7 @@ async function runOnBlame(files) {
             'log',
             "--format='%ae'",
             `${payload.pull_request.base.sha}^!`,
-        ]).trim();
+        ], { encoding: 'utf8', windowsHide: true, timeout: 5000 }).trim();
         console.log('PR author email: %s', authorEmail);
         for (const [file, results] of Object.entries(lintResults.files)) {
             const blameMap = await git_blame_json_1.blame(file);
