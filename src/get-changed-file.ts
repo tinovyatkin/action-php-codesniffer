@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 
 import * as core from '@actions/core';
 import * as github from '@actions/github';
+import * as Webhooks from '@octokit/webhooks';
 
 interface ChangedFiles {
   added: string[];
@@ -29,7 +30,7 @@ export async function getChangedFiles(): Promise<ChangedFiles> {
   });
   if (token) return getChangedFilesFromGitHub(token, re);
 
-  const { context } = github;
+  const payload = github.context.payload as Webhooks.WebhookPayloadPullRequest;
 
   /*
     getting them from Git
@@ -43,9 +44,9 @@ export async function getChangedFiles(): Promise<ChangedFiles> {
         'diff-tree',
         '--no-commit-id',
         '--name-status',
-        '--diff-filter=d',
+        '--diff-filter=d', // we don't need deleted files
         '-r',
-        `${context.event.pull_request.base.sha}..${context.event.after}`,
+        `${payload.pull_request.base.sha}..`,
       ],
       {
         windowsHide: true,
