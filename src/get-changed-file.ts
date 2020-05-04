@@ -65,7 +65,7 @@ export async function getChangedFiles(): Promise<ChangedFiles> {
       if (parsed?.groups) {
         const { status, file } = parsed.groups;
         // ensure file exists
-        if (existsSync(file)) {
+        if (re.test(file) && existsSync(file)) {
           switch (status) {
             case 'A':
             case 'C':
