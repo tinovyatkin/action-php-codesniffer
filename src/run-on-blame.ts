@@ -45,7 +45,7 @@ export async function runOnBlame(files: string[]): Promise<void> {
       console.log(results);
       let headerPrinted = false;
       for (const message of results.messages) {
-        if (blameMap.get(message.line)?.authorEmail === authorEmail) {
+        if (blameMap.get(message.line)?.authorMail === authorEmail) {
           // that's our line
           // we simulate checkstyle output to be picked up by problem matched
           if (!headerPrinted) {
@@ -68,7 +68,7 @@ export async function runOnBlame(files: string[]): Promise<void> {
           console.warn(
             'Line %n, %s != %s',
             message.line,
-            blameMap.get(message.line)?.authorEmail,
+            blameMap.get(message.line)?.authorMail,
             authorEmail
           );
       }

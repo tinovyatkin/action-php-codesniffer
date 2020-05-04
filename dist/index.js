@@ -5888,7 +5888,7 @@ async function runOnBlame(files) {
             console.log(results);
             let headerPrinted = false;
             for (const message of results.messages) {
-                if (((_a = blameMap.get(message.line)) === null || _a === void 0 ? void 0 : _a.authorEmail) === authorEmail) {
+                if (((_a = blameMap.get(message.line)) === null || _a === void 0 ? void 0 : _a.authorMail) === authorEmail) {
                     // that's our line
                     // we simulate checkstyle output to be picked up by problem matched
                     if (!headerPrinted) {
@@ -5904,7 +5904,7 @@ async function runOnBlame(files) {
                         core.setFailed(message.message);
                 }
                 else
-                    console.warn('Line %n, %s != %s', message.line, (_b = blameMap.get(message.line)) === null || _b === void 0 ? void 0 : _b.authorEmail, authorEmail);
+                    console.warn('Line %n, %s != %s', message.line, (_b = blameMap.get(message.line)) === null || _b === void 0 ? void 0 : _b.authorMail, authorEmail);
             }
         }
     }
