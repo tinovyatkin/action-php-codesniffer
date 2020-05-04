@@ -5887,7 +5887,7 @@ async function runOnBlame(files) {
             console.log(blameMap);
             console.log(results);
             let headerPrinted = false;
-            for (const message of results.message) {
+            for (const message of results.messages) {
                 if (((_a = blameMap.get(message.line)) === null || _a === void 0 ? void 0 : _a.authorEmail) === authorEmail) {
                     // that's our line
                     // we simulate checkstyle output to be picked up by problem matched

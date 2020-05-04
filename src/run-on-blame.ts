@@ -44,7 +44,7 @@ export async function runOnBlame(files: string[]): Promise<void> {
       console.log(blameMap);
       console.log(results);
       let headerPrinted = false;
-      for (const message of results.message) {
+      for (const message of results.messages) {
         if (blameMap.get(message.line)?.authorEmail === authorEmail) {
           // that's our line
           // we simulate checkstyle output to be picked up by problem matched
