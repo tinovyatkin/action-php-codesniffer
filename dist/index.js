@@ -4495,7 +4495,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const child_process_1 = __webpack_require__(129);
-const events_1 = __webpack_require__(614);
 const core = __importStar(__webpack_require__(470));
 /**
  * Executes phpcs on whole files and let's errors to be picked by problem matcher
@@ -4503,12 +4502,18 @@ const core = __importStar(__webpack_require__(470));
  */
 async function runOnCompleteFiles(files) {
     const phpcs = core.getInput('phpcs_path', { required: true });
-    const run = child_process_1.spawn(phpcs, ['--report=checkstyle', ...files], {
-        stdio: ['inherit', 'inherit', 'inherit'],
-    });
-    const [code] = await events_1.once(run, 'exit');
-    console.log('PhpCS exited with code %n', code);
-    return code;
+    try {
+        child_process_1.execSync(`${phpcs} --report=checkstyle ${files.join(' ')}`, {
+            stdio: 'inherit',
+            timeout: 20000,
+        });
+        console.log('PhpCS exited with code 0');
+        return 0;
+    }
+    catch (err) {
+        console.error(err);
+        return 1;
+    }
 }
 exports.runOnCompleteFiles = runOnCompleteFiles;
 

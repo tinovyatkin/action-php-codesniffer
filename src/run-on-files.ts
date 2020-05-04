@@ -1,5 +1,4 @@
-import { spawn } from 'child_process';
-import { once } from 'events';
+import { execSync } from 'child_process';
 import * as core from '@actions/core';
 
 /**
@@ -8,11 +7,15 @@ import * as core from '@actions/core';
  */
 export async function runOnCompleteFiles(files: string[]): Promise<number> {
   const phpcs = core.getInput('phpcs_path', { required: true });
-  const run = spawn(phpcs, ['--report=checkstyle', ...files], {
-    stdio: ['inherit', 'inherit', 'inherit'],
-  });
-
-  const [code] = await once(run, 'exit');
-  console.log('PhpCS exited with code %n', code);
-  return code;
+  try {
+    execSync(`${phpcs} --report=checkstyle ${files.join(' ')}`, {
+      stdio: 'inherit',
+      timeout: 20000,
+    });
+    console.log('PhpCS exited with code 0');
+    return 0;
+  } catch (err) {
+    console.error(err);
+    return 1;
+  }
 }
