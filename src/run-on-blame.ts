@@ -1,10 +1,11 @@
 import { lint } from 'php-codesniffer';
-// import { blame } from 'git-blame-json';
+import { execFileSync } from 'child_process';
+import { blame } from 'git-blame-json';
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as Webhooks from '@octokit/webhooks';
 
-export async function runOnBlame(files: string[]) {
+export async function runOnBlame(files: string[]): Promise<void> {
   try {
     const options: Record<string, string> = {};
     const standard = core.getInput('standard');
@@ -26,10 +27,40 @@ export async function runOnBlame(files: string[]) {
     // blame files and output relevant errors
     const payload = github.context
       .payload as Webhooks.WebhookPayloadPullRequest;
-    console.log(JSON.stringify(payload, null, 2));
-    // for (const [file, results] of Object.entries(lintResults.files)) {
-    //   const blameMap = await blame(file);
-    // }
+    // get email of author of first commit in PR
+    const authorEmail = execFileSync('git', [
+      '--no-pager',
+      'log',
+      "--format='%ae'",
+      `${payload.pull_request.base.sha}^!`,
+    ]).trim();
+    console.log('PR author email: %s', authorEmail);
+    for (const [file, results] of Object.entries(lintResults.files)) {
+      const blameMap = await blame(file);
+      let headerPrinted = false;
+      for (const message of results.message) {
+        if (blameMap.get(message.line)?.authorEmail === authorEmail) {
+          // that's our line
+          // we simulate checkstyle output to be picked up by problem matched
+          if (!headerPrinted) {
+            console.log(`<file name="${file}">`);
+            headerPrinted = true;
+          }
+          // output the problem
+          console[message.type === 'ERROR' ? 'error' : 'warn'](
+            `<error line="${message.line}" column="${
+              message.column
+            }" severity="${message.type.toLowerCase()}" message="${
+              message.message
+            }" source="${message.source}"/>`
+          );
+          // fail
+          if (message.type === 'WARNING' && !dontFailOnWarning)
+            core.setFailed(message.message);
+          else if (message.type === 'ERROR') core.setFailed(message.message);
+        }
+      }
+    }
   } catch (err) {
     core.debug(err);
     core.setFailed(err);
