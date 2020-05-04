@@ -1,6 +1,7 @@
 import { lint } from 'php-codesniffer';
 import { execFileSync } from 'child_process';
 import { blame } from 'git-blame-json';
+import * as path from 'path';
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import * as Webhooks from '@octokit/webhooks';
@@ -47,12 +48,12 @@ export async function runOnBlame(files: string[]): Promise<void> {
           // that's our line
           // we simulate checkstyle output to be picked up by problem matched
           if (!headerPrinted) {
-            console.log(`<file name="${file}">`);
+            console.log(`<file name="${path.relative(process.cwd(), file)}">`);
             headerPrinted = true;
           }
           // output the problem
           console.log(
-            '<error line="%n" column="%n" severity="%s" message="%s" source="%s"/>',
+            '<error line="%d" column="%d" severity="%s" message="%s" source="%s"/>',
             message.line,
             message.column,
             message.type.toLowerCase(),

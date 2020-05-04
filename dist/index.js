@@ -5853,6 +5853,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const php_codesniffer_1 = __webpack_require__(160);
 const child_process_1 = __webpack_require__(129);
 const git_blame_json_1 = __webpack_require__(5);
+const path = __importStar(__webpack_require__(622));
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 async function runOnBlame(files) {
@@ -5890,11 +5891,11 @@ async function runOnBlame(files) {
                     // that's our line
                     // we simulate checkstyle output to be picked up by problem matched
                     if (!headerPrinted) {
-                        console.log(`<file name="${file}">`);
+                        console.log(`<file name="${path.relative(process.cwd(), file)}">`);
                         headerPrinted = true;
                     }
                     // output the problem
-                    console.log('<error line="%n" column="%n" severity="%s" message="%s" source="%s"/>', message.line, message.column, message.type.toLowerCase(), message.message, message.source);
+                    console.log('<error line="%d" column="%d" severity="%s" message="%s" source="%s"/>', message.line, message.column, message.type.toLowerCase(), message.message, message.source);
                     // fail
                     if (message.type === 'WARNING' && !dontFailOnWarning)
                         core.setFailed(message.message);
