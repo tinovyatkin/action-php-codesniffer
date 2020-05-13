@@ -27,7 +27,7 @@
   "dependencies": {
     "@actions/core": "1.2.4",
     "@actions/github": "2.2.0",
-    "@octokit/webhooks": "7.4.0",
+    "@octokit/webhooks": "7.5.0",
     "git-blame-json": "1.0.1",
     "php-codesniffer": "1.0.2",
     "picomatch": "2.2.2"
