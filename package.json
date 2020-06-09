@@ -33,7 +33,7 @@
     "picomatch": "2.2.2"
   },
   "devDependencies": {
-    "@types/jest": "25.2.3",
+    "@types/jest": "26.0.0",
     "@types/node": "13.13.6",
     "@types/picomatch": "2.2.1",
     "@typescript-eslint/eslint-plugin": "2.33.0",
