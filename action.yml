@@ -7,7 +7,7 @@ inputs:
     default: '**.php'
     required: false
   scope:
-    description: 'scope to annotate errors or warnings - either "file" to check entire file or "blame" to check only lines changed by author of current PR'
+    description: 'scope to annotate errors or warnings - either "files" to check entire file or "blame" to check only lines changed by author of current PR'
     default: 'blame'
     required: false
   phpcs_path:
