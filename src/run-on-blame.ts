@@ -14,7 +14,8 @@ export async function runOnBlame(files: string[]): Promise<void> {
 
     const lintResults = await lint(
       files,
-      core.getInput('phpcs_path', { required: true })
+      core.getInput('phpcs_path', { required: true }),
+      options
     );
 
     const dontFailOnWarning =
