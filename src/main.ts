@@ -37,4 +37,4 @@ async function run(): Promise<void> {
   }
 }
 
-run();
+void run();

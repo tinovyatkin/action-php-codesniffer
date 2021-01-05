@@ -26,8 +26,6 @@ export async function runOnBlame(files: string[]): Promise<void> {
     }
 
     // blame files and output relevant errors
-    const payload = github.context
-      .payload as Webhooks.WebhookPayloadPullRequest;
     // get email of author of first commit in PR
     const authorEmail = execFileSync(
       'git',
