@@ -12,9 +12,8 @@ export async function runOnBlame(files: string[]): Promise<void> {
     const standard = core.getInput('standard');
     if (standard) options.standard = standard;
 
-    console.log('Scope: %s', core.getInput('scope'));
-    console.log('Standard: %s', core.getInput('standard'));
-    console.log('Options: %s', options);
+    core.info(`Standard: ${standard}`);
+    core.info(`Options: ${options.standard}`);
 
     const lintResults = await lint(
       files,
