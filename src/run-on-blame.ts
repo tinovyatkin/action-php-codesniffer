@@ -35,9 +35,7 @@ export async function runOnBlame(files: string[]): Promise<void> {
       ['--no-pager', 'log', '--format=%ae', `${github.context.sha}^!`],
       { encoding: 'utf8', windowsHide: true, timeout: 5000 }
     ).trim();
-    console.log('PR author email: %s', 'test');
-    console.log('Standard: %s', standard);
-    console.log('Options: %s', options);
+    console.log('PR author email: %s', authorEmail);
 
     for (const [file, results] of Object.entries(lintResults.files)) {
       const blameMap = await blame(file);
