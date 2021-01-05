@@ -12,9 +12,6 @@ export async function runOnBlame(files: string[]): Promise<void> {
     const standard = core.getInput('standard');
     if (standard) options.standard = standard;
 
-    core.info(`Standard: ${standard}`);
-    core.info(`Options: ${options.standard}`);
-
     const lintResults = await lint(
       files,
       core.getInput('phpcs_path', { required: true }),
@@ -39,6 +36,9 @@ export async function runOnBlame(files: string[]): Promise<void> {
       { encoding: 'utf8', windowsHide: true, timeout: 5000 }
     ).trim();
     console.log('PR author email: %s', authorEmail);
+    core.info(`Standard: ${standard}`);
+    core.info(`Options: ${options.standard}`);
+
     for (const [file, results] of Object.entries(lintResults.files)) {
       const blameMap = await blame(file);
       let headerPrinted = false;
