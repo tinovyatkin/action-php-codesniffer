@@ -2122,8 +2122,6 @@ async function runOnBlame(files) {
         const standard = core.getInput('standard');
         if (standard)
             options.standard = standard;
-        console.log('Standard: %s', standard);
-        console.log('Options: %s', options);
         const lintResults = await php_codesniffer_1.lint(files, core.getInput('phpcs_path', { required: true }), options);
         const dontFailOnWarning = core.getInput('fail_on_warnings') == 'false' ||
             core.getInput('fail_on_warnings') === 'off';
