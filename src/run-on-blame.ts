@@ -36,8 +36,8 @@ export async function runOnBlame(files: string[]): Promise<void> {
       { encoding: 'utf8', windowsHide: true, timeout: 5000 }
     ).trim();
     console.log('PR author email: %s', authorEmail);
-    core.info(`Standard: ${standard}`);
-    core.info(`Options: ${options.standard}`);
+    console.log('Standard: %s', standard);
+    console.log('Options: %s', options);
 
     for (const [file, results] of Object.entries(lintResults.files)) {
       const blameMap = await blame(file);
