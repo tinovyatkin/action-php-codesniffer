@@ -12,6 +12,10 @@ export function runOnCompleteFiles(files: string[]): number {
   const standard = core.getInput('standard');
   if (standard) args.push(`--standard=${standard}`);
 
+  const failOnError = core.getInput('fail_on_errors');
+  if (failOnError == 'false' || failOnError === 'off') {
+    args.push('--runtime-set ignore_errors_on_exit 1');
+  }
   const failOnWarning = core.getInput('fail_on_warnings');
   if (failOnWarning == 'false' || failOnWarning === 'off') {
     args.push('--runtime-set ignore_warnings_on_exit 1');
