@@ -17,6 +17,9 @@ inputs:
   standard:
     description: 'Code style standard name (PEAR, ) or path to a phpcs.xml file'
     required: false
+  fail_on_errors:
+    description: 'Whether action should fail on errors or not, default to true (fails)'
+    required: false
   fail_on_warnings:
     description: 'Whether action should fail on warnings or not, default to true (fails)'
     required: false

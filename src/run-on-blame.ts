@@ -4,7 +4,7 @@ import { blame } from 'git-blame-json';
 import * as path from 'path';
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import * as Webhooks from '@octokit/webhooks';
+//import * as Webhooks from '@octokit/webhooks';
 
 export async function runOnBlame(files: string[]): Promise<void> {
   try {
@@ -17,6 +17,9 @@ export async function runOnBlame(files: string[]): Promise<void> {
       core.getInput('phpcs_path', { required: true })
     );
 
+    const dontFailOnError =
+      core.getInput('fail_on_errors') == 'false' ||
+      core.getInput('fail_on_errors') === 'off';
     const dontFailOnWarning =
       core.getInput('fail_on_warnings') == 'false' ||
       core.getInput('fail_on_warnings') === 'off';
@@ -54,14 +57,15 @@ export async function runOnBlame(files: string[]): Promise<void> {
             message.source
           );
           // fail
-          if (message.type === 'WARNING' && !dontFailOnWarning)
+          /*if (message.type === 'WARNING' && !dontFailOnWarning)
             core.setFailed(message.message);
-          else if (message.type === 'ERROR') core.setFailed(message.message);
+          else if (message.type === 'ERROR' && !dontFailOnError)
+            core.setFailed(message.message);*/
         }
       }
     }
   } catch (err) {
     core.debug(err);
-    core.setFailed(err);
+    // core.setFailed(err);
   }
 }
