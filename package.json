@@ -28,7 +28,7 @@
     "@actions/core": "1.2.6",
     "@actions/github": "4.0.0",
     "@octokit/webhooks": "7.8.1",
-    "git-blame-json": "1.0.1",
+    "git-blame-json": "1.0.2",
     "php-codesniffer": "1.0.2",
     "picomatch": "2.2.2"
   },
