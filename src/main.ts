@@ -33,6 +33,7 @@ async function run(): Promise<void> {
       await runOnBlame(files.modified);
     }
   } catch (error) {
+    //@ts-ignore
     core.setFailed(error);
   }
 }
