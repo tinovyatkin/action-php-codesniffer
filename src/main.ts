@@ -4,6 +4,7 @@ import { getChangedFiles } from './get-changed-file';
 import { runOnCompleteFiles } from './run-on-files';
 import { runOnBlame } from './run-on-blame';
 
+//
 async function run(): Promise<void> {
   try {
     const files = await getChangedFiles();
