@@ -9,7 +9,7 @@ jobs:
   build: # make sure build/ci work properly
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - run: |
         npm install
         npm run all
@@ -22,7 +22,7 @@ jobs:
       run: |
           echo "$GITHUB_CONTEXT"
           set
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0 # important!
     - name: Install PHP_CodeSniffer
