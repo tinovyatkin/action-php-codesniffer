@@ -24,7 +24,9 @@ export function runOnCompleteFiles(files: string[]): number {
     });
     return 0;
   } catch (err) {
-    core.debug(err);
+    //@ts-ignore
+    core.debug(err.toString());
+    //@ts-ignore
     core.setFailed(err);
     return 1;
   }
