@@ -4,12 +4,18 @@ import { existsSync } from 'fs';
 
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import * as Webhooks from '@octokit/webhooks';
 import picomatch from 'picomatch';
 
 interface ChangedFiles {
   added: string[];
   modified: string[];
+}
+
+interface PullRequestPayload {
+  pull_request: {
+    base: { sha: string };
+    head: { sha: string };
+  };
 }
 
 export async function getChangedFiles(): Promise<ChangedFiles> {
@@ -19,7 +25,7 @@ export async function getChangedFiles(): Promise<ChangedFiles> {
   const globs = pattern.length ? pattern.split(',') : ['**.php'];
   const isMatch = picomatch(globs);
   console.log('Filter patterns:', globs, isMatch('src/test.php'));
-  const payload = github.context.payload as Webhooks.WebhookPayloadPullRequest;
+  const payload = github.context.payload as unknown as PullRequestPayload;
 
   /*
     getting them from Git

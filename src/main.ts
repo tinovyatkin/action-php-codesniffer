@@ -1,10 +1,10 @@
-import * as path from 'path';
+import * as path from 'node:path';
 import * as core from '@actions/core';
-import { getChangedFiles } from './get-changed-file';
-import { runOnCompleteFiles } from './run-on-files';
-import { runOnBlame } from './run-on-blame';
+import { getChangedFiles } from './get-changed-file.ts';
+import { runOnCompleteFiles } from './run-on-files.ts';
+import { runOnBlame } from './run-on-blame.ts';
 
-async function run(): Promise<void> {
+export async function run(): Promise<void> {
   try {
     const files = await getChangedFiles();
     core.info(JSON.stringify(files, null, 2));
@@ -17,24 +17,22 @@ async function run(): Promise<void> {
      * Adding problem matcher to annotate files without token
      * @see {@link https://github.com/actions/setup-node/blob/a47b2f66c61e623b503818d97a63ce0fe087f700/src/setup-node.ts#L36}
      */
-    const matchersPath = path.join(__dirname, '..', '.github');
+    const matchersPath = path.join(import.meta.dirname, '..', '.github');
     console.log(
       `##[add-matcher]${path.join(matchersPath, 'phpcs-matcher.json')}`
     );
 
     // run on complete files when they added or scope=files
     const scope = core.getInput('scope', { required: true });
-    if (files.added.length || scope === 'files')
+    if (files.added.length || scope === 'files') {
       runOnCompleteFiles(
         scope === 'files' ? [...files.added, ...files.modified] : files.added
       );
-    else if (files.modified.length && scope === 'blame') {
+    } else if (files.modified.length && scope === 'blame') {
       // run on blame
       await runOnBlame(files.modified);
     }
   } catch (error) {
-    core.setFailed(error);
+    core.setFailed(error as Error);
   }
 }
-
-run();

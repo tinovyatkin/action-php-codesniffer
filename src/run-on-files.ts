@@ -24,8 +24,8 @@ export function runOnCompleteFiles(files: string[]): number {
     });
     return 0;
   } catch (err) {
-    core.debug(err);
-    core.setFailed(err);
+    core.debug(err instanceof Error ? err.message : String(err));
+    core.setFailed(err instanceof Error ? err : String(err));
     return 1;
   }
 }

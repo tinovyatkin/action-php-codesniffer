@@ -4,7 +4,6 @@ import { blame } from 'git-blame-json';
 import * as path from 'path';
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import * as Webhooks from '@octokit/webhooks';
 
 export async function runOnBlame(files: string[]): Promise<void> {
   try {
@@ -26,8 +25,6 @@ export async function runOnBlame(files: string[]): Promise<void> {
     }
 
     // blame files and output relevant errors
-    const payload = github.context
-      .payload as Webhooks.WebhookPayloadPullRequest;
     // get email of author of first commit in PR
     const authorEmail = execFileSync(
       'git',
@@ -63,7 +60,7 @@ export async function runOnBlame(files: string[]): Promise<void> {
       }
     }
   } catch (err) {
-    core.debug(err);
-    core.setFailed(err);
+    core.debug(err instanceof Error ? err.message : String(err));
+    core.setFailed(err instanceof Error ? err : String(err));
   }
 }
