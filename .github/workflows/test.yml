@@ -34,12 +34,20 @@ jobs:
         run: echo "" >> __fixtures__/bad-code.php
 
       - name: Smoke test bundle
+        id: smoke
+        continue-on-error: true
         uses: ./
         with:
           files: "__fixtures__/**.php"
           scope: files
           phpcs_path: php node_modules/php_codesniffer_master/bin/phpcs
           standard: PSR12
+
+      - name: Assert smoke test found issues
+        if: steps.smoke.outcome != 'failure'
+        run: |
+          echo "::error::Expected smoke test to fail (fixture has intentional PSR-12 violations)"
+          exit 1
 
   test:
     runs-on: ubuntu-latest
