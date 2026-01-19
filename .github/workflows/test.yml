@@ -1,37 +1,75 @@
 name: "build-test"
-on: # rebuild any PRs and main branch changes
+on:
   pull_request:
   push:
     branches:
       - master
 
 jobs:
-  build: # make sure build/ci work properly
+  build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - run: |
-        npm install
-        npm run all
-  test: # make sure the action works on a clean machine without building
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run all
+
+  smoke-test:
     runs-on: ubuntu-latest
     steps:
-    - name: Dump GitHub context
-      env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: |
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run bundle
+
+      - name: Modify fixture to appear in git diff
+        run: echo "" >> __fixtures__/bad-code.php
+
+      - name: Smoke test bundle
+        id: smoke
+        continue-on-error: true
+        uses: ./
+        with:
+          files: "__fixtures__/**.php"
+          scope: files
+          phpcs_path: php node_modules/php_codesniffer_master/bin/phpcs
+          standard: PSR12
+
+      - name: Assert smoke test found issues
+        if: steps.smoke.outcome != 'failure'
+        run: |
+          echo "::error::Expected smoke test to fail (fixture has intentional PSR-12 violations)"
+          exit 1
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
           echo "$GITHUB_CONTEXT"
           set
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # important!
-    - name: Install PHP_CodeSniffer
-      run: |
-              curl -OL https://squizlabs.github.io/PHP_CodeSniffer/phpcs.phar
-              php phpcs.phar --version
-
-    - uses: ./
-      with: 
-        files: "**.php"
-        phpcs_path: php phpcs.phar
-        standard: '__tests__/phpcs.xml'
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install PHP_CodeSniffer
+        run: |
+          curl -OL https://squizlabs.github.io/PHP_CodeSniffer/phpcs.phar
+          php phpcs.phar --version
+      - uses: ./
+        with:
+          files: "**.php"
+          phpcs_path: php phpcs.phar
+          standard: "__tests__/phpcs.xml"

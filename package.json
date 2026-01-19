@@ -2,16 +2,17 @@
   "name": "typescript-action",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "TypeScript template action",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
     "format": "prettier --write **/*.ts",
     "format-check": "prettier --check **/*.ts",
-    "lint": "eslint src/**/*.ts",
-    "pack": "ncc build",
-    "test": "jest --passWithNoTests",
-    "all": "npm run build && npm run format && npm run lint && npm run pack && npm test"
+    "lint": "eslint",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/index.cjs --sourcemap --legal-comments=linked --define:import.meta.dirname=__dirname",
+    "test": "node --experimental-strip-types --experimental-test-module-mocks --experimental-test-coverage --test '**/*.test.ts'",
+    "all": "npm run build && npm run format && npm run lint && npm run bundle && npm test"
   },
   "repository": {
     "type": "git",
@@ -24,29 +25,25 @@
   ],
   "author": "YourNameOrOrganization",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.6.0"
+  },
   "dependencies": {
-    "@actions/core": "1.2.6",
-    "@actions/github": "5.1.1",
-    "@octokit/webhooks": "12.0.3",
+    "@actions/core": "2.0.2",
+    "@actions/github": "7.0.0",
     "git-blame-json": "1.0.2",
     "php-codesniffer": "1.0.2",
-    "picomatch": "2.2.2"
+    "picomatch": "4.0.3"
   },
   "devDependencies": {
-    "@types/jest": "29.5.4",
-    "@types/node": "18.17.3",
-    "@types/picomatch": "2.2.1",
-    "@typescript-eslint/eslint-plugin": "6.6.0",
-    "@typescript-eslint/parser": "6.6.0",
-    "@zeit/ncc": "0.22.3",
-    "eslint": "8.46.0",
-    "eslint-config-prettier": "9.0.0",
-    "eslint-plugin-jest": "27.2.3",
-    "jest": "29.6.4",
-    "jest-circus": "29.6.4",
-    "js-yaml": "4.1.0",
-    "prettier": "3.0.3",
-    "ts-jest": "29.1.1",
-    "typescript": "5.2.2"
+    "@eslint/js": "9.39.2",
+    "@types/node": "22.10.7",
+    "@types/picomatch": "4.0.2",
+    "esbuild": "0.27.2",
+    "eslint": "9.39.2",
+    "eslint-config-prettier": "10.1.8",
+    "prettier": "3.8.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.53.0"
   }
 }
